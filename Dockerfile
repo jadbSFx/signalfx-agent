@@ -1,7 +1,7 @@
 ARG GO_VERSION=1.13.1
 
 ###### Agent Build Image ########
-FROM ubuntu:16.04 as agent-builder
+FROM ubuntu:18.04 as agent-builder
 
 RUN apt update &&\
     apt install -y curl wget pkg-config parallel git
@@ -35,7 +35,7 @@ RUN AGENT_VERSION=${agent_version} COLLECTD_VERSION=${collectd_version} make sig
 
 
 ###### Collectd builder image ######
-FROM ubuntu:16.04 as collectd
+FROM ubuntu:18.04 as collectd
 
 ARG TARGET_ARCH
 ARG PYTHON_VERSION=3.8.0
@@ -49,8 +49,7 @@ RUN sed -i -e '/^deb-src/d' /etc/apt/sources.list &&\
       dpkg \
       net-tools \
       openjdk-8-jdk \
-      python-software-properties \
-	  software-properties-common \
+      software-properties-common \
       wget \
       autoconf \
       automake \
@@ -150,7 +149,7 @@ RUN echo "#!/bin/bash" > /usr/src/collectd/version-gen.sh &&\
 WORKDIR /usr/src/collectd
 
 ARG extra_cflags="-O2"
-ENV CFLAGS "-Wno-deprecated-declarations -fPIC $extra_cflags"
+ENV CFLAGS "-Wno-deprecated-declarations -Wno-format-truncation -fPIC $extra_cflags"
 ENV CXXFLAGS $CFLAGS
 
 # In the bundle, the java plugin so will live in /lib/collectd and the JVM
@@ -209,7 +208,7 @@ COPY scripts/collect-libs /opt/collect-libs
 RUN /opt/collect-libs /opt/deps /usr/sbin/collectd /usr/lib/collectd/
 # For some reason libvarnishapi doesn't properly depend on libm, so make it
 # right.
-RUN patchelf --add-needed libm-2.23.so /opt/deps/libvarnishapi.so.1.0.4
+RUN patchelf --add-needed libm-2.23.so /opt/deps/libvarnishapi.so.1.0.6
 
 
 ###### Python Plugin Image ######
@@ -242,7 +241,7 @@ RUN find /usr/local/lib/python3.8 -name "*.pyc" -o -name "*.pyo" | xargs rm
 RUN rm -rf /usr/local/lib/python3.8/config-*-linux-gnu
 
 ######### Java monitor dependencies and monitor jar compilation
-FROM ubuntu:16.04 as java
+FROM ubuntu:18.04 as java
 
 RUN apt update &&\
     apt install -y openjdk-8-jdk maven
@@ -262,7 +261,7 @@ RUN cd /usr/src/agent-java/jmx &&\
 
 
 ####### Extra packages that don't make sense to pull down in any other stage ########
-FROM ubuntu:16.04 as extra-packages
+FROM ubuntu:18.04 as extra-packages
 
 RUN apt update &&\
     apt install -y \
@@ -271,7 +270,6 @@ RUN apt update &&\
 	  iproute2 \
 	  netcat \
 	  netcat.openbsd \
-	  realpath \
 	  vim
 
 COPY scripts/collect-libs /opt/collect-libs
@@ -346,7 +344,7 @@ COPY --from=collectd /usr/local/bin/patchelf /bin/
 # Pull in the Linux dynamic link loader at a fixed path across all
 # architectures.  Binaries will later be patched to use this interpreter
 # natively.
-COPY --from=extra-packages /lib/*-linux-gnu/ld-2.23.so /bin/ld-linux.so
+COPY --from=extra-packages /lib/*-linux-gnu/ld-2.27.so /bin/ld-linux.so
 
 # Java dependencies
 COPY --from=extra-packages /opt/root/jre/ /jre
@@ -460,7 +458,7 @@ CMD ["/bin/bash"]
 
 
 ####### Pandoc Converter ########
-FROM ubuntu:16.04 as pandoc-converter
+FROM ubuntu:18.04 as pandoc-converter
 
 RUN apt update &&\
     apt install -y pandoc
