@@ -37,7 +37,6 @@ SUPPORTED_DISTROS = [
     ("ubuntu1804", INIT_SYSTEMD),
     ("amazonlinux1", INIT_UPSTART),
     ("amazonlinux2", INIT_SYSTEMD),
-    ("centos6", INIT_UPSTART),
     ("centos7", INIT_SYSTEMD),
     ("centos8", INIT_SYSTEMD),
     ("opensuse15", INIT_SYSTEMD),
